@@ -7,9 +7,29 @@ $connection = new Connection();
 $db = $connection->getConnection();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-  $stmt = $db->prepare('INSERT INTO tasks (title, description) VALUES(:title,:description)');
-  $stmt->bindParam(':title', $_POST['title']);
-  $stmt->bindParam(':description', $_POST['description']);
+
+  switch ($_GET['action']) {
+    case 'edit':
+      $stmt = $db->prepare('UPDATE tasks SET title = :title, description = :description WHERE id = :id');
+      $stmt->bindParam(':title', $_POST['title']);
+      $stmt->bindParam(':description', $_POST['description']);
+      $stmt->bindParam(':id', $_POST['id']);
+      $stmt->execute();
+      break;
+    case 'create':
+      $stmt = $db->prepare('INSERT INTO tasks (title, description) VALUES(:title,:description)');
+      $stmt->bindParam(':title', $_POST['title']);
+      $stmt->bindParam(':description', $_POST['description']);
+      $stmt->execute();
+      break;
+    default:
+      return;
+  }
+}
+
+if (isset($_GET['action']) && $_GET['action'] === 'delete' && isset($_GET['id'])) {
+  $stmt = $db->prepare('DELETE FROM tasks WHERE id = :id');
+  $stmt->bindParam(':id', $_GET['id']);
   $stmt->execute();
 }
 
@@ -23,24 +43,31 @@ $connection->closeConnection();
 <!DOCTYPE html>
 <html lang="en">
 
-<head>
-  <meta charset="UTF-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Tareas</title>
-</head>
+<?php require('./common/head.php') ?>
 
 <body>
-  <?php foreach ($data as $key => $value) : ?>
-    <div>
-      <h5><?= $value['title'] ?></h5>
-      <div><?= $value['description'] ?></div>
-    </div>
-  <?php endforeach; ?>
-
-  <a href="create.php">
-    Add Task
-  </a>
+  <main class="container">
+    <section class="cards">
+      <?php foreach ($data as $key => $value) : ?>
+        <div class="card">
+          <div class="card-header">
+            <h4 class="title"><?= $value['title'] ?></h4>
+            <span class="task-number">ID: #<?= str_pad($value['id'], 3, "0", STR_PAD_LEFT) ?></span>
+          </div>
+          <div class="card-body">
+            <p class="description"><?= $value['description'] ?></p>
+          </div>
+          <div class="card-footer">
+            <a href="edit.php?id=<?= $value['id'] ?>" class="btn btn-edit">Edit</a>
+            <a href="index.php?action=delete&id=<?= $value['id'] ?>" class="btn btn-delete">Delete</a>
+          </div>
+        </div>
+      <?php endforeach; ?>
+    </section>
+    <a class="btn btn-send" href="create.php">
+      Add Task
+    </a>
+  </main>
 </body>
 
 </html>
